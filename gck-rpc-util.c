@@ -97,6 +97,10 @@ int gck_rpc_mechanism_has_sane_parameters(CK_MECHANISM_TYPE type)
 	case CKM_RSA_PKCS_OAEP:
 	case CKM_RSA_PKCS_PSS:
     case CKM_AES_CBC_PAD:
+	/* PKCS#11 v3.2 PQC: key-gen mechanisms whose pParameter is a single CK_ULONG
+	 * (parameter set selector). The raw bytes are forwarded as-is over gck-rpc. */
+	case 0x0000001C: /* CKM_ML_DSA_KEY_PAIR_GEN  */
+	case 0x0000002D: /* CKM_SLH_DSA_KEY_PAIR_GEN */
 		return 1;
 	default:
 		return 0;
@@ -131,6 +135,9 @@ int gck_rpc_mechanism_has_no_parameters(CK_MECHANISM_TYPE mech)
 	case CKM_EC_KEY_PAIR_GEN:
 	case CKM_ECDSA:
 	case CKM_ECDSA_SHA1:
+	/* PKCS#11 v3.2 PQC: sign/verify mechanisms that take no parameters */
+	case 0x0000001D: /* CKM_ML_DSA           */
+	case 0x0000002E: /* CKM_SLH_DSA          */
 	case CKM_DH_PKCS_KEY_PAIR_GEN:
 	case CKM_DH_PKCS_PARAMETER_GEN:
 	case CKM_X9_42_DH_KEY_PAIR_GEN:
