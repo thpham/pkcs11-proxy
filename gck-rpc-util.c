@@ -96,9 +96,12 @@ int gck_rpc_mechanism_has_sane_parameters(CK_MECHANISM_TYPE type)
 	switch (type) {
 	case CKM_RSA_PKCS_OAEP:
 	case CKM_RSA_PKCS_PSS:
-    case CKM_AES_CBC_PAD:
-	/* PKCS#11 v3.2 PQC: key-gen mechanisms whose pParameter is a single CK_ULONG
-	 * (parameter set selector). The raw bytes are forwarded as-is over gck-rpc. */
+  case CKM_AES_CBC_PAD:
+	/* PKCS#11 v3.2 PQC: key-gen mechanisms that take no pParameter — the
+	 * parameter set is passed as CKA_PARAMETER_SET in the public key template
+	 * (PKCS#11 v3.2 §2.3.10, §2.3.14, §2.3.18).  Treated as "sane" so that
+	 * proto_write_mechanism() forwards them; pParameter length will be 0. */
+	case 0x0000000F: /* CKM_ML_KEM_KEY_PAIR_GEN  */
 	case 0x0000001C: /* CKM_ML_DSA_KEY_PAIR_GEN  */
 	case 0x0000002D: /* CKM_SLH_DSA_KEY_PAIR_GEN */
 		return 1;
@@ -135,9 +138,11 @@ int gck_rpc_mechanism_has_no_parameters(CK_MECHANISM_TYPE mech)
 	case CKM_EC_KEY_PAIR_GEN:
 	case CKM_ECDSA:
 	case CKM_ECDSA_SHA1:
-	/* PKCS#11 v3.2 PQC: sign/verify mechanisms that take no parameters */
-	case 0x0000001D: /* CKM_ML_DSA           */
-	case 0x0000002E: /* CKM_SLH_DSA          */
+	/* PKCS#11 v3.2 PQC: encapsulate/decapsulate and sign/verify mechanisms
+	 * that take no pParameter (PKCS#11 v3.2 §2.3.10, §2.3.14, §2.3.18). */
+	case 0x00000017: /* CKM_ML_KEM  */
+	case 0x0000001D: /* CKM_ML_DSA  */
+	case 0x0000002E: /* CKM_SLH_DSA */
 	case CKM_DH_PKCS_KEY_PAIR_GEN:
 	case CKM_DH_PKCS_PARAMETER_GEN:
 	case CKM_X9_42_DH_KEY_PAIR_GEN:
@@ -218,7 +223,11 @@ gck_rpc_has_ulong_parameter(CK_ATTRIBUTE_TYPE type)
 	case CKA_KEY_TYPE:
 	case CKA_CERTIFICATE_TYPE:
 	case CKA_HW_FEATURE_TYPE:
-        case CKA_MODULUS_BITS:
+  case CKA_MODULUS_BITS:
+	/* PKCS#11 v3.2: PQC parameter set selector — a CK_ULONG that must be
+	 * normalised to sizeof(CK_ULONG) bytes on the server side when the
+	 * client serialised it as a 64-bit integer on a 32-bit platform. */
+	case 0x0000061D: /* CKA_PARAMETER_SET */
 		return 1;
 	default:
 		return 0;
