@@ -108,6 +108,10 @@ enum {
 	GCK_RPC_CALL_C_SeedRandom,
 	GCK_RPC_CALL_C_GenerateRandom,
 
+	/* PKCS#11 v3.2 KEM operations */
+	GCK_RPC_CALL_C_EncapsulateKey,
+	GCK_RPC_CALL_C_DecapsulateKey,
+
 	GCK_RPC_CALL_MAX
 };
 
@@ -204,6 +208,9 @@ static const GckRpcCall gck_rpc_calls[] = {
 	{GCK_RPC_CALL_C_DeriveKey, "C_DeriveKey", "uMuaA", "u"},
 	{GCK_RPC_CALL_C_SeedRandom, "C_SeedRandom", "uay", ""},
 	{GCK_RPC_CALL_C_GenerateRandom, "C_GenerateRandom", "ufy", "ay"},
+	/* PKCS#11 v3.2 KEM operations */
+	{GCK_RPC_CALL_C_EncapsulateKey, "C_EncapsulateKey", "uMuaAfy", "ayu"},
+	{GCK_RPC_CALL_C_DecapsulateKey, "C_DecapsulateKey", "uMuaAay", "u"},
 };
 
 #ifdef _DEBUG

@@ -12,6 +12,9 @@
 /* Call to initialize the module and start listening, returns socket or -1 */
 int gck_rpc_layer_initialize(const char *prefix, CK_FUNCTION_LIST_PTR funcs);
 
+/* Set optional v3.2 extended function list (for C_EncapsulateKey etc.) */
+void gck_rpc_layer_set_v3_2(CK_FUNCTION_LIST_3_2_PTR funcs_3_2);
+
 /* Should be called to cleanup dispatcher */
 void gck_rpc_layer_uninitialize(void);
 

@@ -262,6 +262,47 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
+	/*
+	 * Probe for PKCS#11 v3.2 support (C_GetInterface).
+	 * If the backend module exports C_GetInterface, request the v3.2
+	 * function list which includes C_EncapsulateKey / C_DecapsulateKey.
+	 */
+	{
+		typedef CK_RV (*CK_C_GetInterface_fn)(
+			CK_UTF8CHAR_PTR, CK_VERSION_PTR,
+			CK_INTERFACE_PTR_PTR, CK_FLAGS);
+		CK_C_GetInterface_fn func_get_iface;
+		CK_INTERFACE_PTR iface = NULL;
+		CK_VERSION ver_3_2 = { 3, 2 };
+
+		func_get_iface = (CK_C_GetInterface_fn)
+			dlsym(module, "C_GetInterface");
+		if (func_get_iface) {
+			rv = func_get_iface(
+				(CK_UTF8CHAR_PTR)"PKCS 11",
+				&ver_3_2, &iface, 0);
+			if (rv == CKR_OK && iface && iface->pFunctionList) {
+				gck_rpc_layer_set_v3_2(
+					(CK_FUNCTION_LIST_3_2_PTR)
+					iface->pFunctionList);
+				fprintf(stderr,
+					"pkcs11-proxy: backend supports "
+					"PKCS#11 v3.2 "
+					"(C_EncapsulateKey/C_DecapsulateKey)\n");
+			} else {
+				fprintf(stderr,
+					"pkcs11-proxy: backend has "
+					"C_GetInterface but v3.2 "
+					"not available (0x%08x)\n",
+					(int)rv);
+			}
+		} else {
+			fprintf(stderr,
+				"pkcs11-proxy: backend is PKCS#11 v2.x "
+				"(no C_GetInterface)\n");
+		}
+	}
+
 	path = getenv("PKCS11_DAEMON_SOCKET");
 	if (!path && argc == 3)
            path = argv[2];

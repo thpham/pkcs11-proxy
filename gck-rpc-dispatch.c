@@ -66,6 +66,9 @@
 /* Where we dispatch the calls to */
 static CK_FUNCTION_LIST_PTR pkcs11_module = NULL;
 
+/* Optional v3.2 extended function list (for C_EncapsulateKey / C_DecapsulateKey) */
+static CK_FUNCTION_LIST_3_2_PTR pkcs11_module_3_2 = NULL;
+
 /* The error returned on protocol failures */
 #define PARSE_ERROR CKR_DEVICE_ERROR
 #define PREP_ERROR  CKR_DEVICE_MEMORY
@@ -2003,6 +2006,89 @@ static CK_RV rpc_C_GenerateRandom(CallState * cs)
 }
 
 /* ---------------------------------------------------------------------------
+ * PKCS#11 v3.2 KEM OPERATIONS
+ */
+
+static CK_RV rpc_C_EncapsulateKey(CallState * cs)
+{
+	CK_SESSION_HANDLE session;
+	CK_MECHANISM mechanism;
+	CK_OBJECT_HANDLE public_key;
+	CK_ATTRIBUTE_PTR template;
+	CK_ULONG attribute_count;
+	CK_BYTE_PTR ciphertext;
+	DECLARE_CK_ULONG_PTR(ciphertext_len);
+	CK_OBJECT_HANDLE key;
+
+	debug (("C_EncapsulateKey: enter"));
+	assert (cs);
+	if (!pkcs11_module_3_2 || !pkcs11_module_3_2->C_EncapsulateKey) {
+		return CKR_FUNCTION_NOT_SUPPORTED;
+	}
+	{
+		CK_RV _ret = CKR_OK;
+
+		IN_ULONG(session);
+		IN_MECHANISM(mechanism);
+		IN_ULONG(public_key);
+		IN_ATTRIBUTE_ARRAY(template, attribute_count);
+		IN_BYTE_BUFFER(ciphertext, ciphertext_len);
+
+		assert (gck_rpc_message_is_verified (cs->req));
+		_ret = pkcs11_module_3_2->C_EncapsulateKey(
+			session, &mechanism, public_key,
+			template, attribute_count,
+			ciphertext, ciphertext_len, &key);
+
+		OUT_BYTE_ARRAY(ciphertext, ciphertext_len);
+		OUT_ULONG(key);
+
+	_cleanup:
+		debug (("ret: 0x%x", _ret));
+		return _ret;
+	}
+}
+
+static CK_RV rpc_C_DecapsulateKey(CallState * cs)
+{
+	CK_SESSION_HANDLE session;
+	CK_MECHANISM mechanism;
+	CK_OBJECT_HANDLE private_key;
+	CK_ATTRIBUTE_PTR template;
+	CK_ULONG attribute_count;
+	CK_BYTE_PTR ciphertext;
+	CK_ULONG ciphertext_len;
+	CK_OBJECT_HANDLE key;
+
+	debug (("C_DecapsulateKey: enter"));
+	assert (cs);
+	if (!pkcs11_module_3_2 || !pkcs11_module_3_2->C_DecapsulateKey) {
+		return CKR_FUNCTION_NOT_SUPPORTED;
+	}
+	{
+		CK_RV _ret = CKR_OK;
+
+		IN_ULONG(session);
+		IN_MECHANISM(mechanism);
+		IN_ULONG(private_key);
+		IN_ATTRIBUTE_ARRAY(template, attribute_count);
+		IN_BYTE_ARRAY(ciphertext, ciphertext_len);
+
+		assert (gck_rpc_message_is_verified (cs->req));
+		_ret = pkcs11_module_3_2->C_DecapsulateKey(
+			session, &mechanism, private_key,
+			template, attribute_count,
+			ciphertext, &ciphertext_len, &key);
+
+		OUT_ULONG(key);
+
+	_cleanup:
+		debug (("ret: 0x%x", _ret));
+		return _ret;
+	}
+}
+
+/* ---------------------------------------------------------------------------
  * DISPATCH THREAD HANDLING
  */
 
@@ -2099,6 +2185,9 @@ static int dispatch_call(CallState * cs)
 		    CASE_CALL(C_DeriveKey)
 		    CASE_CALL(C_SeedRandom)
 		    CASE_CALL(C_GenerateRandom)
+		    /* PKCS#11 v3.2 KEM operations */
+		    CASE_CALL(C_EncapsulateKey)
+		    CASE_CALL(C_DecapsulateKey)
 #undef CASE_CALL
 	default:
 		/* This should have been caught by the parse code */
@@ -2605,6 +2694,11 @@ int gck_rpc_layer_initialize(const char *prefix, CK_FUNCTION_LIST_PTR module)
 	return sock;
 }
 
+void gck_rpc_layer_set_v3_2(CK_FUNCTION_LIST_3_2_PTR funcs_3_2)
+{
+	pkcs11_module_3_2 = funcs_3_2;
+}
+
 void gck_rpc_layer_uninitialize(void)
 {
 	DispatchState *ds, *next;
@@ -2645,6 +2739,7 @@ void gck_rpc_layer_uninitialize(void)
 	pthread_mutex_unlock(&pkcs11_dispatchers_mutex);
 
 	pkcs11_module = NULL;
+	pkcs11_module_3_2 = NULL;
 }
 
 /*
