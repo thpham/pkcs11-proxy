@@ -2425,7 +2425,7 @@ static CK_RV
 rpc_C_DecapsulateKey(CK_SESSION_HANDLE session, CK_MECHANISM_PTR mechanism,
 		     CK_OBJECT_HANDLE private_key, CK_ATTRIBUTE_PTR template,
 		     CK_ULONG attribute_count, CK_BYTE_PTR ciphertext,
-		     CK_ULONG_PTR ciphertext_len, CK_OBJECT_HANDLE_PTR key)
+		     CK_ULONG ciphertext_len, CK_OBJECT_HANDLE_PTR key)
 {
 	return_val_if_fail(pkcs11_initialized, CKR_CRYPTOKI_NOT_INITIALIZED);
 	return_val_if_fail(mechanism, CKR_ARGUMENTS_BAD);
@@ -2436,7 +2436,7 @@ rpc_C_DecapsulateKey(CK_SESSION_HANDLE session, CK_MECHANISM_PTR mechanism,
 	IN_MECHANISM(mechanism);
 	IN_ULONG(private_key);
 	IN_ATTRIBUTE_ARRAY(template, attribute_count);
-	IN_BYTE_ARRAY(ciphertext, *ciphertext_len);
+	IN_BYTE_ARRAY(ciphertext, ciphertext_len);
 	PROCESS_CALL;
 	OUT_ULONG(key);
 	END_CALL;

@@ -2075,23 +2075,10 @@ static CK_RV rpc_C_DecapsulateKey(CallState * cs)
 		IN_BYTE_ARRAY(ciphertext, ciphertext_len);
 
 		assert (gck_rpc_message_is_verified (cs->req));
-		fprintf(stderr, "C_DecapsulateKey: session=%lu mech=0x%lx privkey=%lu n_attrs=%lu ct_len=%lu ct=%p\n",
-			(unsigned long)session, (unsigned long)mechanism.mechanism,
-			(unsigned long)private_key, (unsigned long)attribute_count,
-			(unsigned long)ciphertext_len, (void*)ciphertext);
-		{
-			CK_ULONG i;
-			for (i = 0; i < attribute_count; i++) {
-				fprintf(stderr, "  attr[%lu]: type=0x%lx len=%lu pValue=%p\n",
-					(unsigned long)i, (unsigned long)template[i].type,
-					(unsigned long)template[i].ulValueLen, template[i].pValue);
-			}
-		}
-		fflush(stderr);
 		_ret = pkcs11_module_3_2->C_DecapsulateKey(
 			session, &mechanism, private_key,
 			template, attribute_count,
-			ciphertext, &ciphertext_len, &key);
+			ciphertext, ciphertext_len, &key);
 
 		OUT_ULONG(key);
 
